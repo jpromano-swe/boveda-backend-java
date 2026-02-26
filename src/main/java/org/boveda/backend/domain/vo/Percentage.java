@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
-public record Percent(BigDecimal value) {
+public record Percentage(BigDecimal value) {
 
   private static final BigDecimal ZERO = new BigDecimal("0.00");
   private static final BigDecimal ONE_HUNDRED = new BigDecimal("100.00");
@@ -12,7 +12,7 @@ public record Percent(BigDecimal value) {
   private static final int SCALE = 2;
   private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
-  public Percent {
+  public Percentage {
     Objects.requireNonNull(value, "value must not be null");
 
     value = value.setScale(SCALE, ROUNDING);
@@ -26,8 +26,8 @@ public record Percent(BigDecimal value) {
     }
   }
 
-  public static Percent of(String value) {
-    return new Percent(new BigDecimal(value));
+  public static Percentage of(String value) {
+    return new Percentage(new BigDecimal(value));
   }
 
   public Money applyTo(Money money) {
