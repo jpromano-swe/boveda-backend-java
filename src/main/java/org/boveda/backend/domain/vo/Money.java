@@ -5,7 +5,7 @@ import java.math.RoundingMode;
 import java.util.Currency;
 import java.util.Objects;
 
-public record Money(BigDecimal amount, Currency currency) {
+public record Money(BigDecimal amount, Currency currency) implements Comparable<Money>{
   private static final int SCALE = 2;
   private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
@@ -40,4 +40,19 @@ public record Money(BigDecimal amount, Currency currency) {
       throw new IllegalArgumentException("Cannot operate on different currencies");
     }
   }
+
+  public boolean isZero() {
+    return amount.signum() == 0;
+  }
+
+  public boolean isPositive() {
+    return amount.signum() > 0;
+  }
+
+  @Override
+  public int compareTo(Money other) {
+    ensureSameCurrency(other);
+    return this.amount.compareTo(other.amount);
+  }
+
 }

@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.Currency;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class MoneyTest {
 
@@ -48,4 +47,73 @@ class MoneyTest {
 
     assertThrows(IllegalArgumentException.class, () -> ars.add(usd));
   }
+
+  @Test
+  void roundsUsingTwoHalfDecimals() {
+    Money money = Money.ars("100.005");
+    assertEquals(new BigDecimal("100.01"), money.amount());
+  }
+
+  @Test
+  void keepZeroWithScaleTwo() {
+    Money money = Money.ars("0");
+    assertEquals(new BigDecimal("0.00"), money.amount());
+  }
+
+  @Test
+  void rejectsNullCurrency() {
+    assertThrows(NullPointerException.class, () -> Money.of("100.00", null));
+  }
+
+  @Test
+  void rejectsAddWhenOneCurrencyIsNull() {
+    Money ars = Money.ars("200.00");
+    assertThrows(NullPointerException.class, () -> ars.add(null));
+  }
+
+  @Test
+  void rejectSubstractWhenCurrenciesDiffer() {
+    Money ars = Money.ars("200.00");
+    Money usd = Money.of("100.00", Currency.getInstance("USD"));
+  }
+
+  @Test
+  void identifiesZeroAmount() {
+    Money zero = Money.ars("0");
+    Money nonzero = Money.ars("0.01");
+
+    assertTrue(zero.isZero());
+    assertFalse(nonzero.isZero());
+  }
+
+  @Test
+  void identifiesPositiveAmount() {
+    Money positive = Money.ars("10.00");
+    Money zero = Money.ars("0.00");
+    Money negative = Money.ars("-1.00");
+
+    assertTrue(positive.isPositive());
+    assertFalse(zero.isPositive());
+    assertFalse(negative.isPositive());
+  }
+
+  @Test
+  void comparesAmountsWithSameCurrency() {
+    Money low = Money.ars("10.00");
+    Money high = Money.ars("20.00");
+    Money same = Money.ars("10.00");
+
+    assertTrue(high.compareTo(low) > 0);
+    assertTrue(low.compareTo(high) < 0);
+    assertEquals(0, low.compareTo(same));
+  }
+
+  @Test
+  void rejectsCompareWhenCurrenciesDiffer() {
+    Money ars = Money.ars("10.00");
+    Money usd = Money.of("10.00", Currency.getInstance("USD"));
+
+    assertThrows(IllegalArgumentException.class, () -> ars.compareTo(usd));
+  }
+
 }
