@@ -173,3 +173,7 @@ org.boveda.backend
     ├── security
     ├── observability
     └── scheduling
+
+```
+## Documentación técnica
+- [Orden de reglas de compra](docs/technical/order-of-rules.md)
