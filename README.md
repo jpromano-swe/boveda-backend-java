@@ -177,3 +177,31 @@ org.boveda.backend
 ```
 ## Documentación técnica
 - [Orden de reglas de compra](docs/technical/order-of-rules.md)
+
+
+Los ports no “procesan”
+
+Son interfaces/contratos, no lógica.
+Definen cómo se comunican capas.
+El JSON no entra por ports directamente
+
+Entra por un adapter inbound (ej. controller REST).
+Ese adapter transforma JSON -> ExecuteBuyCommand.
+Luego llama al inbound port (ExecuteBuyUseCase).
+Modelo correcto:
+
+REST Controller (adapter inbound) recibe JSON.
+Mapea JSON a ExecuteBuyCommand.
+Llama ExecuteBuyUseCase.execute(command) (puerto de entrada).
+ExecuteBuyService implementa ese puerto y aplica reglas de dominio.
+Para salir al broker, usa BrokerTradingPort (puerto de salida, interfaz).
+Un adapter outbound real (Binance/IOL) implementará BrokerTradingPort.
+El use case devuelve ExecuteBuyResult (DTO de salida para app/API).
+Resumen rápido de cada pieza:
+
+ExecuteBuyUseCase: contrato de entrada del caso de uso.
+ExecuteBuyService: implementación con lógica de aplicación.
+ExecuteBuyCommand: datos de entrada del caso de uso.
+ExecuteBuyResult: datos de salida del caso de uso.
+BrokerTradingPort: contrato de salida hacia broker.
+Binance/IOL Adapter: implementación concreta del port de salida.
