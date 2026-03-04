@@ -25,5 +25,4 @@ logs/
 !.env.example
 
 # Build helpers
-out/
-
+/out/
