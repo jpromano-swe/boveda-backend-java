@@ -177,31 +177,45 @@ org.boveda.backend
 ```
 ## Documentación técnica
 - [Orden de reglas de compra](docs/technical/order-of-rules.md)
+- [Flujo de DetectDeposit](docs/technical/detect-deposit-flow.md)
 
+## Estado actual (hito hasta Día 5)
 
-Los ports no “procesan”
+- Value Objects implementados y testeados:
+  - `Money`
+  - `Percentage`
+  - `InstrumentId`
+  - `BrokerOrderId`
+- Reglas de dominio implementadas y testeadas:
+  - `FeePolicy`
+  - `MinimumOrderPolicy`
+  - `RemainderPolicy`
+- Modelado de estrategia implementado y testeado:
+  - `Strategy`
+  - `Allocation`
+  - `CashReserve`
+- Casos de uso implementados y testeados:
+  - `ExecuteBuy`
+  - `DetectDeposit`
 
-Son interfaces/contratos, no lógica.
-Definen cómo se comunican capas.
-El JSON no entra por ports directamente
+## Aclaración sobre ports y casos de uso
 
-Entra por un adapter inbound (ej. controller REST).
-Ese adapter transforma JSON -> ExecuteBuyCommand.
-Luego llama al inbound port (ExecuteBuyUseCase).
-Modelo correcto:
+Los ports no procesan lógica de negocio; son contratos.
+El JSON no entra por ports directamente, entra por adapters inbound.
 
-REST Controller (adapter inbound) recibe JSON.
-Mapea JSON a ExecuteBuyCommand.
-Llama ExecuteBuyUseCase.execute(command) (puerto de entrada).
-ExecuteBuyService implementa ese puerto y aplica reglas de dominio.
-Para salir al broker, usa BrokerTradingPort (puerto de salida, interfaz).
-Un adapter outbound real (Binance/IOL) implementará BrokerTradingPort.
-El use case devuelve ExecuteBuyResult (DTO de salida para app/API).
-Resumen rápido de cada pieza:
+Flujo correcto:
+1. Controller REST recibe JSON.
+2. Mapea a `ExecuteBuyCommand`.
+3. Llama al inbound port `ExecuteBuyUseCase`.
+4. `ExecuteBuyService` implementa el caso de uso y aplica reglas.
+5. El caso de uso usa `BrokerTradingPort` para salir a broker.
+6. Adapter outbound concreto (Binance/IOL) implementa ese port.
+7. El caso de uso devuelve un DTO (`ExecuteBuyResult`).
 
-ExecuteBuyUseCase: contrato de entrada del caso de uso.
-ExecuteBuyService: implementación con lógica de aplicación.
-ExecuteBuyCommand: datos de entrada del caso de uso.
-ExecuteBuyResult: datos de salida del caso de uso.
-BrokerTradingPort: contrato de salida hacia broker.
-Binance/IOL Adapter: implementación concreta del port de salida.
+Resumen de piezas:
+- `ExecuteBuyUseCase`: contrato de entrada
+- `ExecuteBuyService`: implementación del caso de uso
+- `ExecuteBuyCommand`: datos de entrada
+- `ExecuteBuyResult`: datos de salida
+- `BrokerTradingPort`: contrato de salida
+- `Binance/IOL Adapter`: implementación concreta del contrato de salida
