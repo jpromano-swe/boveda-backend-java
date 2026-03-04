@@ -6,5 +6,6 @@ import org.boveda.backend.domain.vo.Money;
 public record ExecuteBuyResult(
   BrokerOrderId brokerOrderId,
   Money feeAmount,
-  Money netAmount
+  Money netAmount,
+  Money remainderAmount
 ) {}
