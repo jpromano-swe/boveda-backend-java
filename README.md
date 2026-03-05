@@ -178,6 +178,8 @@ org.boveda.backend
 ## Documentación técnica
 - [Orden de reglas de compra](docs/technical/order-of-rules.md)
 - [Flujo de DetectDeposit](docs/technical/detect-deposit-flow.md)
+- [API de depósitos (ingesta + lectura)](docs/technical/day-07-api-deposits-read.md)
+
 
 ## Estado actual (hito hasta Día 5)
 
