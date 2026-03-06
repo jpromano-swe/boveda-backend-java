@@ -26,19 +26,16 @@ public class BinanceMarketDataAdapter implements BrokerMarketDataPort {
   private final CircuitBreaker circuitBreaker;
 
   @Autowired
-  public BinanceMarketDataAdapter(@Qualifier("binanceRestClient") RestClient restClient) {
-    this(
-      restClient,
-      Retry.ofDefaults("binance-marketdata-retry"),
-      CircuitBreaker.ofDefaults("binance-marketdata-cb")
-    );
-  }
-
-  public BinanceMarketDataAdapter(RestClient restClient, Retry retry, CircuitBreaker circuitBreaker) {
+  public BinanceMarketDataAdapter(
+    @Qualifier("binanceRestClient") RestClient restClient,
+    @Qualifier("binanceMarketDataRetry") Retry retry,
+    @Qualifier("binanceMarketDataCircuitBreaker") CircuitBreaker circuitBreaker
+  ) {
     this.restClient = Objects.requireNonNull(restClient);
     this.retry = Objects.requireNonNull(retry);
     this.circuitBreaker = Objects.requireNonNull(circuitBreaker);
   }
+
 
   @Override
   public BrokerQuote fetchPrice(InstrumentId instrumentId) {

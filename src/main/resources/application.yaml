@@ -2,6 +2,15 @@ binance:
   base-url: https://api.binance.com
   connect-timeout: 2s
   read-timeout: 3s
+  resilience:
+    retry:
+      max-attempts: 2
+      wait-duration: 100ms
+    circuit-breaker:
+      minimum-number-of-calls: 5
+      sliding-window-size: 10
+      failure-rate-threshold: 50.0
+      wait-duration-in-open-state: 30s
 
 spring:
   application:

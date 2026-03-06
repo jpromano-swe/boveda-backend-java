@@ -28,15 +28,11 @@ public class BinanceTradingAdapter implements BrokerTradingPort {
   private final CircuitBreaker circuitBreaker;
 
   @Autowired
-  public BinanceTradingAdapter(@Qualifier("binanceRestClient") RestClient restClient) {
-    this(
-      restClient,
-      Retry.ofDefaults("binance-trading-retry"),
-      CircuitBreaker.ofDefaults("binance-trading-cb")
-    );
-  }
-
-  public BinanceTradingAdapter(RestClient restClient, Retry retry, CircuitBreaker circuitBreaker) {
+  public BinanceTradingAdapter(
+    @Qualifier("binanceRestClient") RestClient restClient,
+    @Qualifier("binanceTradingRetry") Retry retry,
+    @Qualifier("binanceTradingCircuitBreaker") CircuitBreaker circuitBreaker
+  ) {
     this.restClient = Objects.requireNonNull(restClient);
     this.retry = Objects.requireNonNull(retry);
     this.circuitBreaker = Objects.requireNonNull(circuitBreaker);
