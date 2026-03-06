@@ -1,4 +1,11 @@
+binance:
+  base-url: https://api.binance.com
+  connect-timeout: 2s
+  read-timeout: 3s
+
 spring:
+  application:
+    name: backend
   datasource:
     url: jdbc:postgresql://localhost:5432/boveda
     username: boveda
