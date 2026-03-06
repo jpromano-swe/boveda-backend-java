@@ -1,11 +1,13 @@
 package org.boveda.backend.application.usecase;
 
+import org.boveda.backend.adapters.out.persistence.postgres.OutboxJobQueueAdapter;
 import org.boveda.backend.application.command.DetectDepositCommand;
 import org.boveda.backend.application.dto.DetectDepositResult;
 import org.boveda.backend.domain.exception.ValidationException;
 import org.boveda.backend.domain.model.DepositEvent;
 import org.boveda.backend.ports.in.DetectDepositUseCase;
 import org.boveda.backend.ports.out.DepositEventRepository;
+import org.boveda.backend.ports.out.JobQueuePort;
 
 import java.time.Instant;
 import java.util.Locale;
@@ -15,9 +17,11 @@ import java.util.UUID;
 public class DetectDepositService implements DetectDepositUseCase {
 
   private final DepositEventRepository repository;
+  private final JobQueuePort jobQueuePort;
 
-  public DetectDepositService(DepositEventRepository repository) {
+  public DetectDepositService(DepositEventRepository repository, JobQueuePort jobQueuePort) {
     this.repository = Objects.requireNonNull(repository);
+    this.jobQueuePort = Objects.requireNonNull(jobQueuePort);
   }
 
   @Override
@@ -67,6 +71,24 @@ public class DetectDepositService implements DetectDepositUseCase {
     );
 
     repository.save(event);
+
+    String payload = """
+  {"depositEventId":"%s","userId":"%s","source":"%s","externalEventId":"%s","correlationId":"%s"}
+  """.formatted(
+      event.eventId(),
+      event.userId(),
+      event.source(),
+      event.externalEventId(),
+      event.correlationId()
+    );
+
+    jobQueuePort.enqueue(
+      "DepositDetected",
+      "DEPOSIT",
+      event.eventId(),
+      payload,
+      now
+    );
     return DetectDepositResult.created();
   }
 
