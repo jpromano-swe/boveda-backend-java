@@ -1,223 +1,58 @@
-# Bóveda Backend - Arquitectura y Setup Inicial
+# BOVEDA - Core Backend (SaaS Financiero)
 
-Backend para producto fintech **Bóveda**, orientado a:
-- estrategias por usuario
-- detección de depósitos
-- ejecución de órdenes (Binance / IOL)
-- reconciliación de operaciones
-- snapshots para dashboard / gráficas
+Motor transaccional backend para **Bóveda**, una plataforma SaaS de automatización de ahorro e inversión basada en reglas de negocio. 
 
-## Objetivo del proyecto
-Migrar/reconstruir desde un prototipo hacia un backend robusto, mantenible y testeable, con foco en:
-- reglas de negocio explícitas
-- integraciones externas desacopladas
-- idempotencia
-- trazabilidad
-- TDD desde el inicio
+El sistema está diseñado para gestionar estrategias de inversión por usuario, procesar eventos de depósito de forma idempotente, ejecutar órdenes de mercado a través de integraciones con brokers externos (Binance, IOL) y mantener la reconciliación estricta de carteras.
 
 ---
 
-## Arquitectura elegida
+## Arquitectura del Sistema
 
-### Estilo
-**Hexagonal (Ports & Adapters)**
+El proyecto implementa **Arquitectura Hexagonal (Ports & Adapters)** y principios de **Domain-Driven Design (DDD)** para garantizar el desacoplamiento absoluto entre la lógica de negocio core y las dependencias de infraestructura.
 
-### Capas principales
+### Capas Principales
 
-#### Core (Dominio + Casos de uso)
-- **Entidades** (planeadas):
-  - `User`
-  - `Strategy`
-  - `Allocation`
-  - `DepositEvent`
-  - `Trade`
-  - `Instrument`
-  - `PortfolioSnapshot`
-  - `CashReserve`
-- **Value Objects**:
-  - `Money (ARS)`
-  - `Percent`
-  - `InstrumentId`
-  - `BrokerOrderId`
-- **Casos de uso** (planeados):
-  - `DetectDeposit`
-  - `ExecuteBuy`
-  - `BuildChartSeries`
-  - `FreezeMonthlyStrategy`
-  - `ReconcileTrades`
+#### 1. Core Domain (Reglas de Negocio)
+Aislado de cualquier framework externo. Implementa la lógica transaccional pura.
+* **Entities:** `User`, `Strategy`, `Allocation`, `Trade`, `PortfolioSnapshot`, `CashReserve`.
+* **Value Objects:** Modelado estricto para evitar errores de primitivas (ej. `Money` con escala fija y políticas de redondeo, `Percentage`, `InstrumentId`).
+* **Casos de Uso Principales:** `ExecuteBuyUseCase`, `DetectDepositUseCase`, `ReconcileTradesUseCase`.
 
-#### Ports (interfaces)
-- **Outbound ports** (hacia infra / terceros):
-  - `BrokerMarketDataPort`
-  - `BrokerTradingPort`
-  - `ExchangeBalancePort`
-  - `DepositEventRepository`
-  - `TradeRepository`
-  - `StrategyRepository`
-  - `SnapshotRepository`
-  - `JobQueuePort`
-- **Inbound ports** (entrada al core):
-  - interfaces de casos de uso consumidas por REST / jobs
+#### 2. Ports (Contratos)
+* **Inbound Ports:** Interfaces que exponen los casos de uso hacia los adaptadores de entrada (REST Controllers).
+* **Outbound Ports:** Contratos que el dominio utiliza para comunicarse con el exterior (`BrokerTradingPort`, `TradeRepository`, `SnapshotRepository`).
 
-#### Adapters
-- **Inbound**
-  - REST Controllers
-- **Outbound**
-  - Binance Adapter
-  - IOL Adapter
-  - Postgres Repositories
-  - Job Queue / Outbox Worker
-
-#### Infra
-- configuración Spring
-- seguridad
-- observabilidad
-- scheduling
-- migraciones DB
-- CI/CD
-- manejo de secretos
+#### 3. Adapters (Infraestructura)
+* **Inbound:** Controladores REST (`@RestController`) que orquestan los DTOs de entrada hacia comandos del dominio (`ExecuteBuyCommand`).
+* **Outbound:** Implementaciones concretas de los puertos de salida (Adaptadores de Binance/IOL, repositorios PostgreSQL, workers para el patrón Outbox).
 
 ---
 
-## Stack elegido (actual)
+## Stack Tecnológico
 
-### Runtime / Framework
-- **Java 21**
-- **Spring Boot 3.3.x**
-- **Spring Web**
-- **Spring Data JDBC** (elegido sobre JPA para mayor simplicidad y control)
-
-### Base de datos
-- **PostgreSQL**
-- **Flyway** para migraciones
-
-### Integraciones HTTP
-- **RestClient (Spring 6+)**
-  - decisión pragmática para arrancar
-  - suficiente para volumen inicial esperado
-  - menor complejidad que WebClient/reactive
-
-### Jobs / Async (decisión recomendada para MVP)
-- **Outbox pattern en Postgres + worker scheduler**
-- `@Scheduled` + **ShedLock** (cuando se implemente scheduler multi-instancia)
-
-### Testing (TDD-first)
-- **JUnit 5**
-- **Mockito**
-- **Testcontainers (Postgres)**
-- **WireMock** (APIs externas)
-
-### Observabilidad (planificado)
-- **Spring Boot Actuator**
-- **Micrometer + Prometheus**
-- logs estructurados con `correlationId`
+* **Lenguaje:** Java 17
+* **Framework Core:** Spring Boot 3.3.x (Spring Web, Spring Data JDBC)
+* **Base de Datos:** PostgreSQL
+* **Migraciones:** Flyway
+* **Integraciones:** RestClient (Spring 6+) con manejo de retries y timeouts.
+* **Procesamiento Asíncrono:** Patrón Outbox en PostgreSQL + Schedulers distribuidos.
+* **Testing:** JUnit 5, Mockito, Testcontainers (Postgres), WireMock (APIs externas).
 
 ---
 
-## Decisiones técnicas importantes (MVP)
+## DevOps & CI/CD (Pipeline de Despliegue)
 
-### 1) TDD como regla de trabajo
-Se implementa siguiendo:
-1. **Red** (test falla)
-2. **Green** (mínimo código para pasar)
-3. **Refactor**
+El ciclo de vida del código está automatizado para garantizar entregas continuas y seguras:
 
-### 2) Dinero con `BigDecimal`
-- Nunca usar `double` para montos
-- `Money` con escala fija y rounding explícito
-- Reglas monetarias testeadas antes de usar en casos de uso
-
-### 3) Idempotencia (requisito)
-Casos críticos deberán ser idempotentes:
-- `DetectDeposit`
-- `ExecuteBuy`
-- `ReconcileTrades`
-
-### 4) Anti-corruption layer para brokers
-El dominio no debe depender de payloads crudos de Binance/IOL.
+1. **Continuous Integration (CI):** Configurado mediante **GitHub Actions**. Cada Pull Request dispara la ejecución de la suite completa de tests unitarios y de integración (Testcontainers).
+2. **Continuous Deployment (CD):** Los merges a la rama principal despliegan automáticamente los artefactos en el entorno PaaS de **Railway**.
+3. **Gestión de Entorno:** Las variables de entorno, secretos y credenciales de bases de datos de producción son gestionadas y encriptadas de forma nativa en la plataforma de despliegue.
 
 ---
 
-## Estructura de paquetes (actual)
+## Estándares de Ingeniería y Decisiones Técnicas
 
-```text
-org.boveda.backend
-├── domain
-│   ├── model
-│   ├── vo
-│   ├── service
-│   ├── event
-│   └── exception
-├── application
-│   ├── usecase
-│   ├── service
-│   ├── command
-│   ├── query
-│   └── dto
-├── ports
-│   ├── in
-│   └── out
-├── adapters
-│   ├── in
-│   │   └── rest
-│   └── out
-│       ├── broker
-│       │   ├── binance
-│       │   └── iol
-│       ├── persistence
-│       │   └── postgres
-│       └── jobs
-│           └── outbox
-└── infra
-    ├── config
-    ├── security
-    ├── observability
-    └── scheduling
-
-```
-## Documentación técnica
-- [Orden de reglas de compra](docs/technical/order-of-rules.md)
-- [Flujo de DetectDeposit](docs/technical/detect-deposit-flow.md)
-- [API de depósitos (ingesta + lectura)](docs/technical/day-07-api-deposits-read.md)
-
-
-## Estado actual (hito hasta Día 5)
-
-- Value Objects implementados y testeados:
-  - `Money`
-  - `Percentage`
-  - `InstrumentId`
-  - `BrokerOrderId`
-- Reglas de dominio implementadas y testeadas:
-  - `FeePolicy`
-  - `MinimumOrderPolicy`
-  - `RemainderPolicy`
-- Modelado de estrategia implementado y testeado:
-  - `Strategy`
-  - `Allocation`
-  - `CashReserve`
-- Casos de uso implementados y testeados:
-  - `ExecuteBuy`
-  - `DetectDeposit`
-
-## Aclaración sobre ports y casos de uso
-
-Los ports no procesan lógica de negocio; son contratos.
-El JSON no entra por ports directamente, entra por adapters inbound.
-
-Flujo correcto:
-1. Controller REST recibe JSON.
-2. Mapea a `ExecuteBuyCommand`.
-3. Llama al inbound port `ExecuteBuyUseCase`.
-4. `ExecuteBuyService` implementa el caso de uso y aplica reglas.
-5. El caso de uso usa `BrokerTradingPort` para salir a broker.
-6. Adapter outbound concreto (Binance/IOL) implementa ese port.
-7. El caso de uso devuelve un DTO (`ExecuteBuyResult`).
-
-Resumen de piezas:
-- `ExecuteBuyUseCase`: contrato de entrada
-- `ExecuteBuyService`: implementación del caso de uso
-- `ExecuteBuyCommand`: datos de entrada
-- `ExecuteBuyResult`: datos de salida
-- `BrokerTradingPort`: contrato de salida
-- `Binance/IOL Adapter`: implementación concreta del contrato de salida
+* **Test-Driven Development (TDD):** Cobertura rigurosa priorizando el flujo Red-Green-Refactor. Las reglas de dominio (ej. `FeePolicy`, `MinimumOrderPolicy`) se testean de forma aislada.
+* **Idempotencia Transaccional:** Los endpoints críticos (como la detección de depósitos y la ejecución de compras) están diseñados para ser idempotentes, evitando la duplicación de operaciones financieras.
+* **Manejo Monetario Seguro:** Prohibición estricta del uso de punto flotante (`double`/`float`) para transacciones. Se utiliza un Value Object `Money` encapsulando `BigDecimal`.
+* **Capa Anticorrupción (ACL):** El dominio no consume payloads crudos de los brokers. Los adaptadores de infraestructura se encargan de la traducción hacia los modelos internos.
